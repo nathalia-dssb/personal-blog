@@ -35,7 +35,7 @@ app.use(express.json());
 // Serve static files from the frontend build
 app.use(express.static(path.join(__dirname, "../../dist")));
 
-app.get("/posts", async (req, res) => {
+app.get("/api/posts", async (req, res) => {
   try {
     const posts = await prisma.post.findMany({
       include: {
@@ -54,7 +54,7 @@ app.get("/posts", async (req, res) => {
   }
 });
 
-app.get("/posts/:id", async (req, res) => {
+app.get("/api/posts/:id", async (req, res) => {
   const { id } = req.params;
   try {
     const post = await prisma.post.findUnique({
@@ -77,7 +77,7 @@ app.get("/posts/:id", async (req, res) => {
   }
 });
 
-app.post("/posts", upload.array("images"), async (req, res) => {
+app.post("/api/posts", upload.array("images"), async (req, res) => {
   const { title, content, authorId } = req.body;
   const files = req.files as Express.Multer.File[];
 
@@ -112,7 +112,7 @@ app.post("/posts", upload.array("images"), async (req, res) => {
   }
 });
 
-app.put("/posts/:id", upload.array("images"), async (req, res) => {
+app.put("/api/posts/:id", upload.array("images"), async (req, res) => {
   const { id } = req.params;
   const { title, content } = req.body;
   const files = req.files as Express.Multer.File[];
@@ -151,7 +151,7 @@ app.put("/posts/:id", upload.array("images"), async (req, res) => {
   }
 });
 
-app.delete("/posts/:id", async (req, res) => {
+app.delete("/api/posts/:id", async (req, res) => {
   const { id } = req.params;
   try {
     await prisma.comment.deleteMany({ where: { postId: Number(id) } });
@@ -163,7 +163,7 @@ app.delete("/posts/:id", async (req, res) => {
   }
 });
 
-app.post("/posts/:id/comments", async (req, res) => {
+app.post("/api/posts/:id/comments", async (req, res) => {
   const { id } = req.params;
   const { username, commentText } = req.body;
   try {
@@ -180,7 +180,7 @@ app.post("/posts/:id/comments", async (req, res) => {
   }
 });
 
-app.post("/posts/:id/kudo", async (req, res) => {
+app.post("/api/posts/:id/kudo", async (req, res) => {
   const { id } = req.params;
   try {
     const post = await prisma.post.update({
@@ -197,7 +197,7 @@ app.post("/posts/:id/kudo", async (req, res) => {
   }
 });
 
-app.get("/authors/:id", async (req, res) => {
+app.get("/api/authors/:id", async (req, res) => {
   const { id } = req.params;
   try {
     let author = await prisma.author.findUnique({
@@ -227,7 +227,7 @@ app.get("/authors/:id", async (req, res) => {
   }
 });
 
-app.put("/authors/:id", upload.single("avatar"), async (req, res) => {
+app.put("/api/authors/:id", upload.single("avatar"), async (req, res) => {
   const { id } = req.params;
   const { name, bio } = req.body;
   const file = req.file;
@@ -254,7 +254,7 @@ app.put("/authors/:id", upload.single("avatar"), async (req, res) => {
 });
 
 // Handle React routing (SPA) - must be last
-app.get("*", (req, res) => {
+app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, "../../dist/index.html"));
 });
 
