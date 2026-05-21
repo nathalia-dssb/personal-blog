@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { Lock, Mail } from "lucide-react";
 
 interface LoginProps {
-  onLogin: (email: string, password: string) => boolean;
+  onLogin: (email: string, password: string) => Promise<boolean>;
 }
 
 export function Login({ onLogin }: LoginProps) {
@@ -11,16 +11,24 @@ export function Login({ onLogin }: LoginProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setIsSubmitting(true);
 
-    const success = onLogin(email, password);
-    if (success) {
-      navigate("/admin");
-    } else {
-      setError("Invalid email or password");
+    try {
+      const success = await onLogin(email, password);
+      if (success) {
+        navigate("/admin");
+      } else {
+        setError("Invalid email or password");
+      }
+    } catch (err) {
+      setError("An error occurred during login");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -72,17 +80,12 @@ export function Login({ onLogin }: LoginProps) {
 
             <button
               type="submit"
-              className="w-full py-3 bg-primary text-primary-foreground rounded-full hover:opacity-90 transition-opacity"
+              disabled={isSubmitting}
+              className="w-full py-3 bg-primary text-primary-foreground rounded-full hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              Sign In
+              {isSubmitting ? "Signing In..." : "Sign In"}
             </button>
           </form>
-
-          {/* <div className="mt-6 text-center text-sm text-muted-foreground">
-            <p>Demo credentials:</p>
-            <p>Email: author@blog.com</p>
-            <p>Password: password123</p>
-          </div> */}
         </div>
 
         <button

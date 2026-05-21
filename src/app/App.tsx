@@ -5,6 +5,7 @@ import { BlogList } from './pages/BlogList';
 import { BlogPost } from './pages/BlogPost';
 import { Login } from './pages/Login';
 import { Admin } from './pages/Admin';
+import { ProtectedRoute } from './components/ProtectedRoute';
 import { PostManagement } from './pages/PostManagement';
 import { EditPost } from './pages/EditPost';
 import { Post, Comment, Author } from './types';
@@ -18,18 +19,22 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      setIsLoggedIn(true);
+    }
     fetchAllData();
   }, []);
 
   const fetchAllData = async () => {
     try {
       setLoading(true);
-      const [postsData, authorData] = await Promise.all([
+      const [postsData, authorsData] = await Promise.all([
         api.getPosts(),
-        api.getAuthor(1)
+        api.getAuthors()
       ]);
       setPosts(postsData);
-      setAuthor(authorData);
+      setAuthor(authorsData[0] || null);
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
@@ -48,22 +53,27 @@ export default function App() {
 
   const fetchAuthor = async () => {
     try {
-      const data = await api.getAuthor(1);
-      setAuthor(data);
+      const authorsData = await api.getAuthors();
+      setAuthor(authorsData[0] || null);
     } catch (error) {
       console.error('Failed to fetch author:', error);
     }
   };
 
-  const handleLogin = (email: string, password: string) => {
-    if (email === 'author@blog.com' && password === 'password123') {
+  const handleLogin = async (email: string, password: string) => {
+    try {
+      const authorData = await api.login(email, password);
+      setAuthor(authorData);
       setIsLoggedIn(true);
       return true;
+    } catch (error) {
+      console.error('Login failed:', error);
+      return false;
     }
-    return false;
   };
 
   const handleLogout = () => {
+    api.logout();
     setIsLoggedIn(false);
   };
 
@@ -128,13 +138,15 @@ export default function App() {
   };
 
   const handleUpdateAuthor = async (name: string, bio: string, avatar: File | null) => {
+    if (!author) return;
+
     const formData = new FormData();
     formData.append('name', name);
     formData.append('bio', bio);
     if (avatar) formData.append('avatar', avatar);
 
     try {
-      await api.updateAuthor(1, formData);
+      await api.updateAuthor(author.id, formData);
       await fetchAuthor();
     } catch (error) {
       console.error('Failed to update author:', error);
@@ -166,44 +178,47 @@ export default function App() {
               isLoggedIn ? <Navigate to="/admin" /> : <Login onLogin={handleLogin} />
             }
           />
-          <Route
-            path="/admin"
-            element={
-              <PostManagement
-                isLoggedIn={isLoggedIn}
-                posts={posts}
-                onDelete={handleDeletePost}
-              />
-            }
-          />
-          <Route
-            path="/admin/new"
-            element={
-              <Admin
-                isLoggedIn={isLoggedIn}
-                onCreatePost={handleCreatePost}
-              />
-            }
-          />
-          <Route
-            path="/admin/edit/:id"
-            element={
-              <EditPost
-                isLoggedIn={isLoggedIn}
-                onUpdatePost={handleUpdatePost}
-              />
-            }
-          />
-          <Route
-            path="/admin/profile"
-            element={
-              <Profile
-                isLoggedIn={isLoggedIn}
-                author={author}
-                onUpdateAuthor={handleUpdateAuthor}
-              />
-            }
-          />
+          
+          <Route element={<ProtectedRoute isLoggedIn={isLoggedIn} />}>
+            <Route
+              path="/admin"
+              element={
+                <PostManagement
+                  isLoggedIn={isLoggedIn}
+                  posts={posts}
+                  onDelete={handleDeletePost}
+                />
+              }
+            />
+            <Route
+              path="/admin/new"
+              element={
+                <Admin
+                  isLoggedIn={isLoggedIn}
+                  onCreatePost={handleCreatePost}
+                />
+              }
+            />
+            <Route
+              path="/admin/edit/:id"
+              element={
+                <EditPost
+                  isLoggedIn={isLoggedIn}
+                  onUpdatePost={handleUpdatePost}
+                />
+              }
+            />
+            <Route
+              path="/admin/profile"
+              element={
+                <Profile
+                  isLoggedIn={isLoggedIn}
+                  author={author}
+                  onUpdateAuthor={handleUpdateAuthor}
+                />
+              }
+            />
+          </Route>
         </Routes>
       </div>
     </BrowserRouter>
